@@ -195,10 +195,12 @@ class CourseCard extends StatelessWidget {
 class CourseDetailCard extends StatelessWidget {
   const CourseDetailCard({
     super.key,
+    required this.course,
     required this.onEdit,
     required this.onDelete,
   });
 
+  final Course course;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -217,7 +219,7 @@ class CourseDetailCard extends StatelessWidget {
               color: FlutterFlowTheme.of(context).primaryText, size: 70),
           const SizedBox(height: 14),
           Text(
-            'Hello World',
+            course.name,
             textAlign: TextAlign.center,
             style: FlutterFlowTheme.of(context).bodyMedium.override(
                   font: GoogleFonts.inter(fontWeight: FontWeight.bold),
@@ -228,7 +230,7 @@ class CourseDetailCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            'Hello World',
+            course.description,
             textAlign: TextAlign.justify,
             style:
                 FlutterFlowTheme.of(context).bodyMedium.copyWith(height: 1.4),
@@ -236,9 +238,9 @@ class CourseDetailCard extends StatelessWidget {
           const SizedBox(height: 14),
           Divider(thickness: 2, color: FlutterFlowTheme.of(context).alternate),
           const SizedBox(height: 14),
-          Text('Hello World', style: FlutterFlowTheme.of(context).bodyMedium),
+          Text('Profesor: ${course.teacher}', style: FlutterFlowTheme.of(context).bodyMedium),
           const SizedBox(height: 14),
-          Text('Hello World', style: FlutterFlowTheme.of(context).bodyMedium),
+          Text('Semestre: ${course.semester}', style: FlutterFlowTheme.of(context).bodyMedium),
           const SizedBox(height: 14),
           Wrap(
             spacing: 16,

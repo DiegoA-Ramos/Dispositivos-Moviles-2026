@@ -67,7 +67,7 @@ class _CoursesPageWidgetState extends State<CoursesPageWidget> {
     await context.pushNamed(
       CourseDetailPageWidget.routeName,
       queryParameters: {
-        'courseId': serializeParam(0, ParamType.int),
+        'courseId': serializeParam(course.id, ParamType.int),
       }.withoutNulls,
     );
 

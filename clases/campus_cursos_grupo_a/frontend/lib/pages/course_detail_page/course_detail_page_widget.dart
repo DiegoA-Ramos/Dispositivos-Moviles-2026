@@ -7,6 +7,10 @@ import '/ui/widgets/course_sections.dart';
 import 'package:flutter/material.dart';
 
 import 'course_detail_page_model.dart';
+
+import '/repositories/course_repository.dart';
+import '/models/course.dart';
+
 export 'course_detail_page_model.dart';
 
 class CourseDetailPageWidget extends StatefulWidget {
@@ -28,10 +32,29 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
   late CourseDetailPageModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
+  final CourseRepository _courseRepository = CourseRepository();
+  late Future<Course> _courseFuture;
+
   @override
   void initState() {
     super.initState();
     _model = createModel(context, CourseDetailPageModel.new);
+
+    _courseFuture = _loadCourse();
+  }
+
+  Future<Course> _loadCourse() async {
+    if (widget.courseId != null) {
+      return await _courseRepository.getCourse(widget.courseId!);
+    } else {
+      throw Exception('No se proporcionó un ID de curso válido.');
+    }
+  }
+
+  void _reloadCourse() {
+    setState(() {
+      _courseFuture = _loadCourse();
+    });
   }
 
   @override
@@ -40,26 +63,56 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
     super.dispose();
   }
 
-  void _editCourse() {
-    context.pushNamed(
+  Future<void> _editCourse() async {
+    final id = widget.courseId;
+    if(id == null || id <=0 ) return;
+
+    await context.pushNamed(
       CourseFromPageWidget.routeName,
       queryParameters: {
-        'courseId': serializeParam(0, ParamType.int),
+        'courseId': serializeParam(id, ParamType.int),
       }.withoutNulls,
     );
+
+    _reloadCourse();
   }
 
-  void _deleteCourse() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Eliminando...',
-          style: TextStyle(color: FlutterFlowTheme.of(context).primaryText),
-        ),
-        duration: const Duration(milliseconds: 4000),
-        backgroundColor: FlutterFlowTheme.of(context).secondary,
+  Future<void> _deleteCourse(Course course) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar eliminación'),
+        content: const Text('¿Estás seguro de que deseas eliminar este curso?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
       ),
     );
+    
+    if(confirm != true) return;
+
+    try {
+      await _courseRepository.deleteCourse(course.id!);
+      if(!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Curso eliminado exitosamente')),
+      );
+      
+      context.pop();
+    } catch (e) {
+      if(!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al eliminar el curso: $e')),
+      );
+    }
   }
 
   @override
@@ -73,7 +126,11 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
         body: CampusPageLayout(
           maxWidth: 800,
           children: [
-            CourseDetailCard(onEdit: _editCourse, onDelete: _deleteCourse),
+            CourseDetailCard(
+              course: _model.course,
+              onEdit: _editCourse, 
+              onDelete: _deleteCourse
+            ),
           ],
         ),
       ),

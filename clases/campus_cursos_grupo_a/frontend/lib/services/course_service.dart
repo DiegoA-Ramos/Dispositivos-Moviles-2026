@@ -56,7 +56,7 @@ class CourseService {
   Future<Course> getCourse(int id,)async{
     final response = await _client.get(
       _uri(
-      '/courses/%id',
+      '/courses/$id',
     ),);
 
     if(response.statusCode != 200){
