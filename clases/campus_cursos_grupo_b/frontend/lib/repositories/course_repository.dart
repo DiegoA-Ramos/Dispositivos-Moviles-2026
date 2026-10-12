@@ -16,11 +16,11 @@ class CourseRepository {
     return _service.getCourse(id);
   }
 
-  Future<void> createCourse(Course course) {
+  Future<Course> createCourse(Course course) {
     return _service.createCourse(course);
   }
 
-  Future<void> updateCourse(Course course) {
+  Future<Course> updateCourse(Course course) {
     return _service.updateCourse(course);
   }
 

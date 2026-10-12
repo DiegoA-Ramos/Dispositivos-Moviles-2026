@@ -1,16 +1,9 @@
 [
   {
     "id": 1,
-    "name": "Fundamentos de Programacion",
+    "name": "Fundamentos de Programacion 2",
     "description": "Introduccion a algoritmos, variables, estructuras de control y funciones mediante ejercicios practicos.",
     "teacher": "Laura Martinez",
-    "semester": "2026-1"
-  },
-  {
-    "id": 2,
-    "name": "Programacion Orientada a Objetos",
-    "description": "Diseno de aplicaciones mantenibles usando clases, objetos, herencia, polimorfismo y encapsulamiento.",
-    "teacher": "Carlos Hernandez",
     "semester": "2026-1"
   },
   {

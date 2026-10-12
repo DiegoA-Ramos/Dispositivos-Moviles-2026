@@ -32,6 +32,7 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
   late CourseDetailPageModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
+
   final CourseRepository _repository = CourseRepository();
   late Future<Course> _courseFuture;
 
@@ -42,10 +43,12 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
     _courseFuture = _loadCourses();
   }
 
-  Future<Course> _loadCourses(){
-    return _repository.getCourse(
-      widget.courseId!.toInt()
-    );
+  Future<Course> _loadCourses() {
+    final id = widget.courseId;
+    if (id == null || id <= 0) {
+      throw Exception('Invalid course ID');
+    }
+    return _repository.getCourse(id);
   }
 
   void _reloadCourses() {
@@ -58,15 +61,25 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
   void dispose() {
     _model.dispose();
     super.dispose();
+
+    _repository.dispose();
   }
 
-  void _editCourse() {
-    context.pushNamed(
+  Future<void> _editCourse() async {
+    final id = widget.courseId;
+    if (id == null || id <= 0) {
+      throw Exception('Invalid course ID');
+      return;
+    }
+    await context.pushNamed(
       CourseFormPageWidget.routeName,
       queryParameters: {
-        'courseId': serializeParam(0, ParamType.int),
+        'courseId': serializeParam(id, ParamType.int),
       }.withoutNulls,
     );
+
+    if (!mounted) return;
+    _reloadCourses();
   }
 
   void _showDeletingMessage() {
@@ -82,6 +95,49 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
     );
   }
 
+  Future<void> _deleteCourse(Course course) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirmar eliminación'),
+          content:
+              const Text('¿Estás seguro de que deseas eliminar este curso?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _repository.deleteCourse(course.id!);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Curso eliminado exitosamente.',
+            style: TextStyle(color: FlutterFlowTheme.of(context).primaryText),
+          ),
+          duration: const Duration(milliseconds: 4000),
+          backgroundColor: FlutterFlowTheme.of(context).secondary,
+        ),
+      );
+      context.pop();
+    } catch (e) {
+      print(e.toString());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -95,15 +151,38 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
         appBar: const CampusAppBar(title: 'Cursos'),
         body: SafeArea(
           top: true,
-          child: SingleChildScrollView(
-            child: ResponsivePageSection(
-              maxWidth: 900,
-              child: CourseDetailCard(
-                course: _courseFuture as Course,
-                onEdit: _editCourse,
-                onDelete: _showDeletingMessage,
-              ),
-            ),
+          child: FutureBuilder<Course>(
+            future: _courseFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error: ${snapshot.error}',
+                    style: FlutterFlowTheme.of(context).bodyMedium,
+                  ),
+                );
+              } else if (!snapshot.hasData) {
+                return Center(
+                  child: Text(
+                    'No se encontró el curso.',
+                    style: FlutterFlowTheme.of(context).bodyMedium,
+                  ),
+                );
+              } else {
+                final course = snapshot.data!;
+                return ResponsivePageSection(
+                  child: CourseDetailCard(
+                    course: course,
+                    onEdit: _editCourse,
+                    onDelete: () {
+                      _deleteCourse(course);
+                    },
+                  ),
+                );
+              }
+            },
           ),
         ),
       ),
