@@ -118,7 +118,9 @@ class _CoursesPageWidgetState extends State<CoursesPageWidget> {
           elevation: 2.0,
         ),
         body: SafeArea(
-          child: SingleChildScrollView(
+          child: RefreshIndicator(
+            onRefresh: _refreshCourses, 
+            child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(
               horizontal: horizontalPadding,
               vertical: 24.0,
@@ -173,7 +175,7 @@ class _CoursesPageWidgetState extends State<CoursesPageWidget> {
                     ),
                     const SizedBox(height: 32.0),
                     
-                    FutureBuilder(
+                    FutureBuilder<List<Course>>(
                       future: _coursesFuture, 
                       builder: (context, snapshot){
                         if(snapshot.connectionState 
@@ -191,6 +193,52 @@ class _CoursesPageWidgetState extends State<CoursesPageWidget> {
                             snapshot.hasError.toString()
                           );
                         }
+
+                        final courses = snapshot.data ?? [];
+
+                        if(courses.isEmpty){
+                          return Column(
+                            children: [
+                              const Icon(Icons.school_outlined,
+                              size: 55,),
+
+                              const SizedBox(height: 12,),
+
+                              const Text('Todavia no existen cursos'),
+                              const SizedBox(
+                                height: 12,
+                              ),
+
+                              FilledButton.icon(
+                                onPressed: _openNewCourse, 
+                                icon: const Icon(Icons.add,),
+                                label: const Text('Crear curso'),
+                              ),
+                            ],
+                          );
+                        }
+
+                        return LayoutBuilder(
+                          builder: (context, constraints){
+                            return Wrap(
+                              spacing: 16,
+                              runSpacing: 16,
+                              alignment: WrapAlignment.center,
+
+                              children: courses.map(
+                                (course){
+                                  print(course.id);
+                                  return CourseListCard(
+                                    course: course, 
+                                    onViewDetails: (){
+                                      _openCourseDetails(course,);
+                                    },
+                                  );
+                                },
+                              ).toList(),
+                            );
+                          }
+                        );
                       }
                     ),
                   ],
@@ -198,7 +246,8 @@ class _CoursesPageWidgetState extends State<CoursesPageWidget> {
               ),
             ),
           ),
-        ),
+          ),
+          ),
       ),
     );
   }

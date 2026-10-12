@@ -13,6 +13,14 @@ const DATA_FILE = path.join(__dirname, 'data','courses.json');
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+    res.json({
+        ok: true,
+        message: 'Api funcionando',
+        endpoints: ['/api/health', '/api/courses']
+    });
+});
+
 async function readCourses() {
     const content =
         await fs.readFile(
@@ -208,7 +216,10 @@ app.listen(
     '0.0.0.0',
     ()=>{
         console.log(
-            'Api ejecutandose correctamente'
+            `Api ejecutandose correctamente en http://localhost:${PORT}`
         );
+        readCourses()
+            .then(courses => console.log('Cursos cargados:', courses))
+            .catch(error => console.error('No se pudieron cargar los cursos:', error));
     }
 );
