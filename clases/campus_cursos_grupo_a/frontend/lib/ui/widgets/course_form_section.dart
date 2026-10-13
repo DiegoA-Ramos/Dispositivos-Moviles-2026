@@ -3,6 +3,9 @@ import '/flutter_flow/flutter_flow_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '/models/course.dart';
+import '/repositories/course_repository.dart';
+
 class CourseFormSection extends StatelessWidget {
   const CourseFormSection({
     super.key,
@@ -89,7 +92,7 @@ class CourseFormSection extends StatelessWidget {
             focusNode: semesterFocusNode,
             label: 'Semestre',
             validator: semesterValidator,
-            keyboardType: TextInputType.number,
+            keyboardType: TextInputType.text,
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => onSave(),
           ),

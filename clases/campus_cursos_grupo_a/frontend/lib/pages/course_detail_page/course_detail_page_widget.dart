@@ -59,6 +59,7 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
 
   @override
   void dispose() {
+    _courseRepository.dispose();
     _model.dispose();
     super.dispose();
   }
@@ -123,15 +124,29 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
         key: scaffoldKey,
         backgroundColor: campusPageBackground,
         appBar: buildCampusAppBar(context, 'Cursos'),
-        body: CampusPageLayout(
-          maxWidth: 800,
-          children: [
-            CourseDetailCard(
-              course: _model.course,
-              onEdit: _editCourse, 
-              onDelete: _deleteCourse
-            ),
-          ],
+        body: FutureBuilder<Course>(
+          future: _courseFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else if (!snapshot.hasData) {
+              return const Center(child: Text('Curso no encontrado.'));
+            } else {
+              final course = snapshot.data!;
+              return CampusPageLayout(
+                maxWidth: 800,
+                children: [
+                  CourseDetailCard(
+                    course: course,
+                    onEdit: _editCourse,
+                    onDelete: () => _deleteCourse(course),
+                  ),
+                ],
+              );
+            }
+          },
         ),
       ),
     );
