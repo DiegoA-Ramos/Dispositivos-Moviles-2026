@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'course_detail_page_model.dart';
 
+import '/models/course.dart';
+import '/repositories/course_repositorie.dart';
+
 export 'course_detail_page_model.dart';
 
 class CourseDetailPageWidget extends StatefulWidget {
@@ -24,10 +27,31 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
   late CourseDetailPageModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
+  final CourseRepositorie _repository = CourseRepositorie();
+
+  late Future<Course> _courseFuture;
+
   @override
   void initState() {
     super.initState();
     _model = createModel(context, CourseDetailPageModel.new);
+
+    _courseFuture = _loadCourses();
+  }
+
+  Future<Course> _loadCourses(){
+    final courseId = widget.courseId;
+    if(courseId == null || courseId <= 0){
+      return Future.error('No se recibio un curso');
+    }
+
+    return _repository.getCourse(courseId);
+  }
+
+  void _reloadCourses(){
+    setState(() {
+      _courseFuture = _loadCourses();
+    });
   }
 
   @override
@@ -165,26 +189,69 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
     );
   }
 
-  void _editCourse() {
-    context.pushNamed(
+  Future<void> _editCourse() async{
+    final id = widget.courseId;
+    if(id == null || id <= 0) return;
+
+    await context.pushNamed(
       CourseFormPageWidget.routeName,
       queryParameters: {
-        'courseId': serializeParam(0, ParamType.int),
+        'courseId': serializeParam(id, ParamType.int),
       }.withoutNulls,
     );
+
+    if(!mounted){
+      return;
+    }
+
+    _reloadCourses();
   }
 
-  void _deleteCourse() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Eliminando curso...',
-          style: TextStyle(color: FlutterFlowTheme.of(context).primaryText),
-        ),
-        duration: const Duration(milliseconds: 4000),
-        backgroundColor: FlutterFlowTheme.of(context).secondary,
-      ),
+  Future<void> _deleteCourse(Course course) async{
+    final confirm = await showDialog<bool>(context: context, 
+    builder: (dialogContext){
+      return AlertDialog(
+        title: const Text('Eliminar curso'),
+        content: Text('Deseas eliminar "${course.name}"'),
+
+        actions: [
+          TextButton(
+            onPressed: (){
+              Navigator.pop(
+                dialogContext,
+                false,
+              );
+            }, 
+            child: const Text('Cancelar')
+          ),
+
+          FilledButton(
+            onPressed: (){
+              Navigator.pop(dialogContext,true);
+            }, 
+            child: const Text('Eliminar')
+          )
+        ],
+      );
+    }
     );
+
+    if(confirm != true){
+      return;
+    }
+
+    try{
+      await _repository.deleteCourse(course.id!);
+      if(!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('curso eliminado...'))
+      );
+
+      context.pop();
+    }catch(e){
+      print(e.toString());
+    }
   }
 }
 
