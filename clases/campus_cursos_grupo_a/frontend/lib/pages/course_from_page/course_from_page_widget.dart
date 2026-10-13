@@ -1,3 +1,5 @@
+import 'package:campus_cursos_grupo_a/models/course.dart';
+
 import '/flutter_flow/flutter_flow_util.dart';
 import '/ui/widgets/campus_app_bar.dart';
 import '/ui/widgets/campus_page_layout.dart';
@@ -116,20 +118,52 @@ class _CourseFromPageWidgetState extends State<CourseFromPageWidget> {
   }
 
   Future<void> _saveCourse() async{
-    
+    if(_isSaving) return;
+
+    if(_model.formKey.currentState == null || !_model.formKey.currentState!.validate()){
+      return;
+    }
+
+    final course = Course(
+      id: _isEditing ? widget.courseId : null,
+      name: _model.nameFieldTextController!.text.trim(), 
+      description: _model.descriptionFieldTextController!.text.trim(), 
+      teacher: _model.teacherFieldTextController!.text.trim(), 
+      semester: _model.semesterFieldTextController!.text.trim()
+    );
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      if(_isEditing){
+        await _courseRepository.updateCourse(course);
+      } else {
+        await _courseRepository.createCourse(course);
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Curso guardado exitosamente')),
+      );
+      context.pop(true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al guardar el curso: $e')),
+      );
+    } finally {
+      if(mounted){
+        setState(() {
+        _isSaving = false;
+      });
+      }
+    }
   }
 
   @override
   void dispose() {
+    _courseRepository.dispose();
     _model.dispose();
     super.dispose();
-  }
-
-  void _saveCourse() {
-    if (_model.formKey.currentState == null ||
-        !_model.formKey.currentState!.validate()) {
-      return;
-    }
   }
 
   @override
@@ -140,7 +174,9 @@ class _CourseFromPageWidgetState extends State<CourseFromPageWidget> {
         key: scaffoldKey,
         backgroundColor: campusPageBackground,
         appBar: buildCampusAppBar(context, 'Formulario'),
-        body: CampusPageLayout(
+        body: 
+          _isLoading ? const Center(
+            child: CircularProgressIndicator() ,) : CampusPageLayout(
           maxWidth: 760,
           children: [
             CourseFormSection(
@@ -166,7 +202,7 @@ class _CourseFromPageWidgetState extends State<CourseFromPageWidget> {
               onSave: _saveCourse,
             ),
           ],
-        ),
+        )
       ),
     );
   }
