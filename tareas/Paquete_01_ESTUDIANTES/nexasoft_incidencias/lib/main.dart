@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'ui/pantalla_principal.dart';
-
+//
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const NexaSoftApp());
