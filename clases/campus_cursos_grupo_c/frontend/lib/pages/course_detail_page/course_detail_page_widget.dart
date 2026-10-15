@@ -56,6 +56,7 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
 
   @override
   void dispose() {
+    _repository.dispose();
     _model.dispose();
     super.dispose();
   }
@@ -86,7 +87,23 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
           ),
           elevation: 2.0,
         ),
-        body: SafeArea(
+        body: FutureBuilder<Course>(
+          future: _courseFuture,
+          builder: (context, snapshot){
+            if(snapshot.connectionState == ConnectionState.waiting){
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+
+            if(snapshot.hasError){
+              return Center(
+                child: Text('Error al cargar el curso: ${snapshot.error}'),
+              );
+            }
+
+            final course = snapshot.data!;
+            return SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(
               horizontal: width < 600.0 ? 20.0 : 40.0,
@@ -174,7 +191,9 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
                           _DetailActionButton(
                             label: 'Eliminar',
                             icon: Icons.delete,
-                            onPressed: _deleteCourse,
+                            onPressed: (){
+                              _deleteCourse(course);
+                            },
                           ),
                         ],
                       ),
@@ -184,6 +203,8 @@ class _CourseDetailPageWidgetState extends State<CourseDetailPageWidget> {
               ),
             ),
           ),
+        );
+          },
         ),
       ),
     );

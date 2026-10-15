@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'course_form_page_model.dart';
 
+import '/models/course.dart';
+import '/repositories/course_repositorie.dart';
+
 export 'course_form_page_model.dart';
 
 class CourseFormPageWidget extends StatefulWidget {
@@ -24,6 +27,13 @@ class _CourseFormPageWidgetState extends State<CourseFormPageWidget> {
   late CourseFormPageModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
+  final CourseRepositorie _repository = CourseRepositorie();
+  bool _loadingCourse = false;
+  bool get _isEditing{
+    final courseId = widget.courseId;
+    return courseId != null && courseId > 0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -36,10 +46,46 @@ class _CourseFormPageWidgetState extends State<CourseFormPageWidget> {
     _model.cacherFieldFocusNode ??= FocusNode();
     _model.semesterFieldTextController ??= TextEditingController();
     _model.semesterFieldFocusNode ??= FocusNode();
+
+    if(_isEditing){
+      _loadingCourse = true;
+      _loadCourse();
+    }
+  }
+
+  Future<void> _loadCourse() async {
+    final courseId = widget.courseId;
+    if(courseId == null || courseId <= 0){
+      return;
+    }
+
+    try{
+      final course = await _repository.getCourse(courseId);
+      _model.nameFieldTextController!.text = course.name;
+      _model.descriptionFieldTextController!.text = course.description;
+      _model.cacherFieldTextController!.text = course.teacher;
+      _model.semesterFieldTextController!.text = course.semester.toString();
+    }catch(e){
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error al cargar el curso: $e',
+            style: TextStyle(color: FlutterFlowTheme.of(context).primaryText),
+          ),
+          duration: const Duration(milliseconds: 4000),
+          backgroundColor: FlutterFlowTheme.of(context).secondary,
+        ),
+      );
+    }finally{
+      setState(() {
+        _loadingCourse = false;
+      });
+    }
   }
 
   @override
   void dispose() {
+    _repository.dispose();
     _model.dispose();
     super.dispose();
   }
@@ -184,16 +230,51 @@ class _CourseFormPageWidgetState extends State<CourseFormPageWidget> {
     );
   }
 
-  void _saveCourse() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Guardando',
-          style: TextStyle(color: FlutterFlowTheme.of(context).primaryText),
-        ),
-        duration: const Duration(milliseconds: 4000),
-        backgroundColor: FlutterFlowTheme.of(context).secondary,
-      ),
+  Future<void> _saveCourse() async {
+    if (!_model.formKey.currentState!.validate()) {
+      return;
+    }
+
+    final name = _model.nameFieldTextController!.text.trim();
+    final description = _model.descriptionFieldTextController!.text.trim();
+    final teacher = _model.cacherFieldTextController!.text.trim();
+    final semester = int.tryParse(_model.semesterFieldTextController!.text);
+
+    if (semester == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Semestre debe ser un número válido')),
+      );
+      return;
+    }
+
+    final course = Course(
+      id: widget.courseId,
+      name: name,
+      description: description,
+      teacher: teacher,
+      semester: semester,
     );
+
+    try {
+      if (_isEditing) {
+        await _repository.updateCourse(course);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Curso actualizado exitosamente')),
+        );
+      } else {
+        await _repository.createCourse(course);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Curso creado exitosamente')),
+        );
+      }
+
+      if(!mounted) return;
+
+      context.pop(true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al guardar el curso: $e')),
+      );
+    }
   }
 }
