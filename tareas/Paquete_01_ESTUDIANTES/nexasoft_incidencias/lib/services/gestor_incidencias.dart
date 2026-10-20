@@ -19,6 +19,14 @@ class GestorIncidencias {
       .toList();
    }
 
+  List<Incidencia> filtrar(String texto, String estado, String prioridad) {
+    return buscar(texto)
+      .where((x) =>
+        (estado == 'Todos' || x.estado == estado) &&
+        (prioridad == 'Todas' || x.prioridad == prioridad))
+      .toList();
+  }
+
   Incidencia? porId(String id) {
     for (var x in incidencias) {
       if (x.id == id) return x;
